@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 
+type Payment = {
+  status: string;
+  external_reference?: string;
+};
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const email = searchParams.get("email");
@@ -11,15 +16,15 @@ export async function GET(req: Request) {
   try {
     const res = await fetch(`https://api.mercadopago.com/v1/payments/search?external_reference=${encodeURIComponent(email)}`, {
       headers: {
-        Authorization: `Bearer ${process.env.MERCADO_PAGO_TOKEN}`, // use variável de ambiente
+        Authorization: `Bearer ${process.env.MERCADO_PAGO_TOKEN}`,
         "Content-Type": "application/json",
       },
     });
 
     const data = await res.json();
 
-    const hasPaid = data.results?.some(
-      (p: any) => p.status === "approved" && p.external_reference?.toLowerCase() === email.toLowerCase()
+    const hasPaid = (data.results as Payment[])?.some(
+      (p) => p.status === "approved" && p.external_reference?.toLowerCase() === email.toLowerCase()
     );
 
     return NextResponse.json({ isPremium: hasPaid || false });
