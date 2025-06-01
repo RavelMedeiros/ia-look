@@ -8,12 +8,39 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogTrigger, DialogTitle } from "@/components/ui/dialog";
 
 const maxFree = 3;
-const getTodayKey = () => new Date().toISOString().split("T")[0];
-const getFreeUses = () => parseInt(localStorage.getItem(getTodayKey()) || "0", 10);
-const incrementFreeUses = () => {
-  const count = getFreeUses();
-  localStorage.setItem(getTodayKey(), (count + 1).toString());
+const USAGE_KEY = "freeUsage";
+
+type UsageData = {
+  count: number;
+  firstUse: number; // timestamp
 };
+
+const getFreeUsage = (): UsageData => {
+  if (typeof window === "undefined") return { count: 0, firstUse: 0 };
+  const raw = localStorage.getItem(USAGE_KEY);
+  if (!raw) return { count: 0, firstUse: 0 };
+  try {
+    const data = JSON.parse(raw);
+    return data;
+  } catch {
+    return { count: 0, firstUse: 0 };
+  }
+};
+
+const setFreeUsage = (data: UsageData) => {
+  localStorage.setItem(USAGE_KEY, JSON.stringify(data));
+};
+
+const incrementFreeUsage = () => {
+  const usage = getFreeUsage();
+  const now = Date.now();
+  if (!usage.firstUse || now - usage.firstUse > 24 * 60 * 60 * 1000) {
+    setFreeUsage({ count: 1, firstUse: now });
+  } else {
+    setFreeUsage({ ...usage, count: usage.count + 1 });
+  }
+};
+
 const isPremium = () => localStorage.getItem("premium") === "true";
 
 export default function GenerateLookPage() {
@@ -26,7 +53,15 @@ export default function GenerateLookPage() {
   const [liberando, setLiberando] = useState(false);
 
   useEffect(() => {
-    setFreeUses(getFreeUses());
+    const usage = getFreeUsage();
+    const now = Date.now();
+    if (usage.firstUse && now - usage.firstUse > 24 * 60 * 60 * 1000) {
+      // Reset expired
+      setFreeUsage({ count: 0, firstUse: 0 });
+      setFreeUses(0);
+    } else {
+      setFreeUses(usage.count);
+    }
   }, []);
 
   const handleGenerate = async () => {
@@ -49,8 +84,8 @@ export default function GenerateLookPage() {
 
       const data = await res.json();
       setImageUrl(data.imageUrl);
-      incrementFreeUses();
-      setFreeUses(getFreeUses());
+      incrementFreeUsage();
+      setFreeUses(getFreeUsage().count);
     } catch (err) {
       console.error("Erro ao gerar imagem:", err);
     } finally {
@@ -67,6 +102,7 @@ export default function GenerateLookPage() {
       if (data.isPremium) {
         localStorage.setItem("premium", "true");
         alert("Acesso liberado com sucesso!");
+        setFreeUsage({ count: 0, firstUse: 0 });
         setFreeUses(0);
       } else {
         alert("Pagamento não encontrado. Tente novamente mais tarde.");
@@ -106,7 +142,7 @@ export default function GenerateLookPage() {
         {freeUses >= maxFree && !isPremium() && (
           <div className="mt-4 text-center space-y-2">
             <p className="text-sm text-muted-foreground">
-              Você atingiu o limite grátis de {maxFree} usos hoje.
+              Você atingiu o limite grátis de {maxFree} usos em 24h.
             </p>
             <Dialog>
               <DialogTrigger asChild>
