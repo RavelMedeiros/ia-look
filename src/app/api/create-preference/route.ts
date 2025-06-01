@@ -28,7 +28,7 @@ export async function POST(req: Request) {
         },
         external_reference: email,
         back_urls: {
-          success: "https://seudominio.com/sucesso",
+          success: "https://ia-look.vercel.app",
           failure: "https://seudominio.com/erro",
           pending: "https://seudominio.com/pendente",
         },
