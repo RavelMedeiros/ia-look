@@ -1,103 +1,179 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import React, { useState, useEffect } from "react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogTrigger, DialogTitle } from "@/components/ui/dialog";
+
+const maxFree = 3;
+const getTodayKey = () => new Date().toISOString().split("T")[0];
+const getFreeUses = () => parseInt(localStorage.getItem(getTodayKey()) || "0", 10);
+const incrementFreeUses = () => {
+  const count = getFreeUses();
+  localStorage.setItem(getTodayKey(), (count + 1).toString());
+};
+const isPremium = () => localStorage.getItem("premium") === "true";
+
+export default function GenerateLookPage() {
+  const [prompt, setPrompt] = useState("");
+  const [gender, setGender] = useState("mulher");
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [freeUses, setFreeUses] = useState(0);
+  const [emailInput, setEmailInput] = useState("");
+  const [liberando, setLiberando] = useState(false);
+
+  useEffect(() => {
+    setFreeUses(getFreeUses());
+  }, []);
+
+  const handleGenerate = async () => {
+    if (!prompt.trim()) return;
+
+    if (freeUses >= maxFree && !isPremium()) {
+      alert("Você atingiu o limite grátis de hoje. Adquira acesso ilimitado.");
+      return;
+    }
+
+    setLoading(true);
+    setImageUrl(null);
+
+    try {
+      const res = await fetch("/api/generate-look", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt, gender }),
+      });
+
+      const data = await res.json();
+      setImageUrl(data.imageUrl);
+      incrementFreeUses();
+      setFreeUses(getFreeUses());
+    } catch (err) {
+      console.error("Erro ao gerar imagem:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLiberarAcesso = async () => {
+    if (!emailInput) return alert("Informe seu e-mail");
+    setLiberando(true);
+    try {
+      const res = await fetch(`/api/check-premium?email=${encodeURIComponent(emailInput)}`);
+      const data = await res.json();
+      if (data.isPremium) {
+        localStorage.setItem("premium", "true");
+        alert("Acesso liberado com sucesso!");
+        setFreeUses(0);
+      } else {
+        alert("Pagamento não encontrado. Tente novamente mais tarde.");
+      }
+    } catch (err) {
+      console.error("Erro ao verificar premium:", err);
+      alert("Erro ao verificar acesso. Tente novamente mais tarde.");
+    } finally {
+      setLiberando(false);
+    }
+  };
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
+    <main className="max-w-xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      <h1 className="text-2xl sm:text-3xl font-bold mb-6 text-center">Gerador de Looks com IA</h1>
+      <div className="flex flex-col gap-4 w-full">
+        <Input
+          placeholder="Digite o tipo de look (ex: look para casamento de dia)"
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
         />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+        <Select value={gender} onValueChange={setGender}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Selecione o gênero" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="mulher">Look feminino</SelectItem>
+            <SelectItem value="homem">Look masculino</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Button onClick={handleGenerate} disabled={loading || (freeUses >= maxFree && !isPremium())} className="w-full">
+          {loading ? "Gerando..." : freeUses >= maxFree && !isPremium() ? "Limite diário atingido" : "Gerar Look"}
+        </Button>
+
+        {freeUses >= maxFree && !isPremium() && (
+          <div className="mt-4 text-center space-y-2">
+            <p className="text-sm text-muted-foreground">
+              Você atingiu o limite grátis de {maxFree} usos hoje.
+            </p>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button>Desbloquear ilimitado com PIX ou Cartão</Button>
+              </DialogTrigger>
+              <DialogContent className="space-y-4">
+                <DialogTitle className="text-base font-medium text-center">Pagamento e Liberação de Acesso</DialogTitle>
+                <p className="text-sm text-muted-foreground text-center">
+                  Gere um link de pagamento abaixo usando seu e-mail e depois confirme:
+                </p>
+
+                <Input
+                  type="email"
+                  placeholder="Digite seu e-mail usado no pagamento"
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                />
+
+                <Button
+                  variant="secondary"
+                  disabled={!emailInput || liberando}
+                  onClick={async () => {
+                    if (!emailInput) return alert("Informe seu e-mail primeiro");
+
+                    setLiberando(true);
+                    try {
+                      const res = await fetch("/api/create-preference", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ email: emailInput }),
+                      });
+
+                      const data = await res.json();
+
+                      if (data.init_point) {
+                        window.open(data.init_point, "_blank");
+                      } else {
+                        alert("Erro ao gerar link. Tente novamente.");
+                      }
+                    } catch (err) {
+                      console.error("Erro ao gerar link:", err);
+                      alert("Erro ao gerar link. Tente novamente mais tarde.");
+                    } finally {
+                      setLiberando(false);
+                    }
+                  }}
+                  className="w-full"
+                >
+                  Gerar link de pagamento com meu e-mail
+                </Button>
+
+                <Button onClick={handleLiberarAcesso} disabled={liberando} variant="outline" className="w-full">
+                  {liberando ? "Verificando..." : "Já paguei, liberar acesso"}
+                </Button>
+              </DialogContent>
+            </Dialog>
+          </div>
+        )}
+      </div>
+
+      {imageUrl && (
+        <Card className="mt-6">
+          <CardContent className="p-4 flex justify-center">
+            <img src={imageUrl} alt="Look gerado por IA" className="max-w-full h-auto rounded-lg" />
+          </CardContent>
+        </Card>
+      )}
+    </main>
   );
 }
