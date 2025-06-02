@@ -105,7 +105,7 @@ export default function GenerateLookPage() {
 
         // 🔥 Evento do TikTok Pixel
         if (typeof window !== "undefined" && window.ttq) {
-          window.ttq.track("CompletePayment");
+          window.ttq.track("Purchase");
         }
 
         alert("Acesso liberado com sucesso!");
