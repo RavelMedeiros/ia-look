@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogTrigger, DialogTitle } from "@/components/ui/dialog";
 
-const maxFree = 3;
+const maxFree = 2;
 const USAGE_KEY = "freeUsage";
 
 type UsageData = {
