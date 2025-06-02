@@ -56,7 +56,6 @@ export default function GenerateLookPage() {
     const usage = getFreeUsage();
     const now = Date.now();
     if (usage.firstUse && now - usage.firstUse > 24 * 60 * 60 * 1000) {
-      // Reset expired
       setFreeUsage({ count: 0, firstUse: 0 });
       setFreeUses(0);
     } else {
@@ -164,30 +163,34 @@ export default function GenerateLookPage() {
                 <Button
                   variant="secondary"
                   disabled={!emailInput || liberando}
-                  onClick={async () => {
+                  onClick={() => {
                     if (!emailInput) return alert("Informe seu e-mail primeiro");
 
                     setLiberando(true);
-                    try {
-                      const res = await fetch("/api/create-preference", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ email: emailInput }),
+                    const newTab = window.open("", "_blank");
+
+                    fetch("/api/create-preference", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ email: emailInput }),
+                    })
+                      .then((res) => res.json())
+                      .then((data) => {
+                        if (data.init_point) {
+                          if (newTab) newTab.location.href = data.init_point;
+                        } else {
+                          alert("Erro ao gerar link. Tente novamente.");
+                          if (newTab) newTab.close();
+                        }
+                      })
+                      .catch((err) => {
+                        console.error("Erro ao gerar link:", err);
+                        alert("Erro ao gerar link. Tente novamente mais tarde.");
+                        if (newTab) newTab.close();
+                      })
+                      .finally(() => {
+                        setLiberando(false);
                       });
-
-                      const data = await res.json();
-
-                      if (data.init_point) {
-                        window.open(data.init_point, "_blank");
-                      } else {
-                        alert("Erro ao gerar link. Tente novamente.");
-                      }
-                    } catch (err) {
-                      console.error("Erro ao gerar link:", err);
-                      alert("Erro ao gerar link. Tente novamente mais tarde.");
-                    } finally {
-                      setLiberando(false);
-                    }
                   }}
                   className="w-full"
                 >
