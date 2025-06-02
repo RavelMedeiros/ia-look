@@ -12,7 +12,7 @@ const USAGE_KEY = "freeUsage";
 
 type UsageData = {
   count: number;
-  firstUse: number; // timestamp
+  firstUse: number;
 };
 
 const getFreeUsage = (): UsageData => {
@@ -100,6 +100,12 @@ export default function GenerateLookPage() {
       const data = await res.json();
       if (data.isPremium) {
         localStorage.setItem("premium", "true");
+
+        // 🔥 Evento do TikTok Pixel
+        if (typeof window !== "undefined" && window.ttq) {
+          window.ttq.track("CompletePayment");
+        }
+
         alert("Acesso liberado com sucesso!");
         setFreeUsage({ count: 0, firstUse: 0 });
         setFreeUses(0);
