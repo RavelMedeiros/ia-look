@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: "Content-Security-Policy",
-            value: "script-src 'self' https://analytics.tiktok.com;",
+            value: "script-src 'self' 'unsafe-inline' https://analytics.tiktok.com;",
           },
         ],
       },
